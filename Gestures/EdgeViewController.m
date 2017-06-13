@@ -14,8 +14,7 @@
 @interface EdgeViewController () <UIGestureRecognizerDelegate>
 
 @property (nonatomic) UIView *screenView;
-@property (nonatomic) NSLayoutConstraint *screenViewXConstraint;
-@property (nonatomic) CGFloat centerX;
+@property (nonatomic) CGRect originalPosition;
 
 @end
 
@@ -24,97 +23,50 @@
 - (void)viewDidLoad{
     [super viewDidLoad];
     
-    self.screenView = [[UIView alloc] initWithFrame:CGRectZero];
+    int width = [[UIScreen mainScreen] bounds].size.width;
+    self.originalPosition = CGRectMake(width - 20, 200, 250, 250);
+    self.screenView = [[UIView alloc] initWithFrame:self.originalPosition];
     self.screenView.translatesAutoresizingMaskIntoConstraints = NO;
     self.screenView.backgroundColor = [UIColor yellowColor];
     [self.view addSubview:self.screenView];
     self.screenView.userInteractionEnabled = YES;
-    
-    NSLayoutConstraint *screenViewHeightConstraint = [NSLayoutConstraint constraintWithItem:self.screenView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:250];
-    
-    NSLayoutConstraint *screenViewWidthConstraint = [NSLayoutConstraint constraintWithItem:self.screenView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:250];
-    
-    self.screenViewXConstraint = [NSLayoutConstraint constraintWithItem:self.screenView attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute: NSLayoutAttributeCenterX multiplier:1.0 constant:300];
-    
-    NSLayoutConstraint *screenViewYConstraint = [NSLayoutConstraint constraintWithItem:self.screenView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.view attribute: NSLayoutAttributeCenterY multiplier:1.0 constant:0];
-    
-    [NSLayoutConstraint activateConstraints:@[screenViewHeightConstraint, screenViewWidthConstraint, self.screenViewXConstraint, screenViewYConstraint]];
-
-    
-//    CGFloat width = 100;
-//    CGFloat height = 100;
-//    CGRect frame = CGRectMake(CGRectGetMidX(self.view.bounds) - width/2, CGRectGetMidY(self.view.bounds) - height/2, width, height);
-//    UIView *view = [[UIView alloc]initWithFrame:frame];
-//    view.backgroundColor = [UIColor purpleColor];
-//    [self.view addSubview:view];
  
     UIScreenEdgePanGestureRecognizer *edgeGestrure = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(viewScreenEdge:)];
-    [self.view addGestureRecognizer: edgeGestrure];
-    [edgeGestrure setEdges:UIRectEdgeRight];
+    [self.screenView addGestureRecognizer: edgeGestrure];
+//    [edgeGestrure setEdges:UIRectEdgeRight];
     [edgeGestrure setDelegate:self];
-    [self.view addGestureRecognizer: edgeGestrure];
     
-    
-}
-
-- (IBAction)redViewPan:(UIPanGestureRecognizer *)sender {
-    //    CGPoint locationInView = [sender locationInView:self.view];
-    //    sender.view.center = locationInView;
-    
-    CGPoint translationInView = [sender translationInView:self.view];
-    
-    CGPoint oldCenter = sender.view.center;
-    CGPoint newCenter = CGPointMake (oldCenter.x + translationInView.x, oldCenter.y + translationInView.y);
-    
-    sender.view.center = newCenter;
-    [sender setTranslation: CGPointZero inView:self.view];
+    UIPanGestureRecognizer *panGestrure = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(viewScreenEdge:)];
+    [self.screenView addGestureRecognizer: panGestrure];
+    [panGestrure setDelegate:self];
     
 }
 
 
 - (void)viewScreenEdge: (UIScreenEdgePanGestureRecognizer *)sender {
 
-    // Get the current view we are touching
-    UIView *view = [self.screenView hitTest:[sender locationInView:sender.view] withEvent:nil];
-
-    self.centerX = self.view.bounds.size.width / 2;
+    //setting the openedFrame
+    CGRect openedFrame = sender.view.frame;
+    openedFrame.origin.x =  200;
 
     if(UIGestureRecognizerStateBegan == sender.state || UIGestureRecognizerStateChanged == sender.state) {
-//    if(UIGestureRecognizerStateBegan) {
+        
         CGPoint translation = [sender translationInView:sender.view];
-        // Move the view's center using the gesture
-        [UIView animateWithDuration:0.3f animations:^{
-        view.center = CGPointMake(self.centerX+ translation.x, view.center.y);
-        }];
+        
+        CGRect theFrame = sender.view.frame;
+        theFrame.origin.x = theFrame.origin.x + translation.x;
+
+//        NSLog(@"%f", theFrame.origin.x);
+        
+        if (theFrame.origin.x > 100 && theFrame.origin.x < 200) {
+            theFrame.origin.x = 200;
+            [UIView animateWithDuration:0.3f animations:^{
+                [sender.view setFrame:theFrame];
+            }];
+        } else if(theFrame.origin.x > 200) {
+            [sender.view setFrame:self.originalPosition];
+        }
     }
-//    } else {// cancel, fail, or ended
-//        // Animate back to center x
-//        [UIView animateWithDuration:0.3f animations:^{
-//            view.center = CGPointMake(self.centerX, view.center.y);
-//        }];
-//    }
-
-    
-//    if (sender.edges == UIRectEdgeLeft){
-//
-//        CGPoint translationInView = [sender translationInView:self.view];
-//        
-//        CGPoint oldCenter = sender.view.center;
-//        CGPoint newCenter = CGPointMake (oldCenter.x + translationInView.x, oldCenter.y);
-//        
-//        sender.view.center = newCenter;
-//        [sender setTranslation: CGPointZero inView:self.view];
-
-//        [UIView animateWithDuration:0.1f animations:^{
-//            self.screenViewXConstraint.constant -= 250;
-//        }];
-////            } else if (sender.edges == UIRectEdgeRight) {
-//    } else {
-////        NSLog(@"Swiped to right");
-//        [UIView animateWithDuration:1.0f animations:^{
-//            self.screenViewXConstraint.constant = 0;
-//        }];
-//    }
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
